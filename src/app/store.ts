@@ -196,16 +196,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     try {
-      let currentUser = await dataProvider.auth.getCurrentUser();
-      const accounts = await dataProvider.auth.listLocalAccounts();
-
-      if (!currentUser && accounts.length === 0) {
-        currentUser = await dataProvider.backup.seedSampleData();
-      }
-
+      const currentUser = await dataProvider.auth.getCurrentUser();
       await get().refreshUserData(currentUser);
       set({ isInitialized: true, isLoading: false });
-      await get().checkDayRollover();
+      if (currentUser) {
+        await get().checkDayRollover();
+      }
     } catch {
       set({ isInitialized: true, isLoading: false });
     }
@@ -942,7 +938,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const seededUser = await dataProvider.backup.seedSampleData(user?.id);
     await get().refreshUserData(seededUser);
     get().showToast({
-      message: 'Dados de exemplo carregados (incluindo conta convidada Lucas para testes)!',
+      message: 'Dados de exemplo carregados!',
       type: 'success',
     });
   },

@@ -25,6 +25,7 @@ import { CustomSelectDropdown, SelectOption } from './CustomSelectDropdown';
 import { Logo } from './Logo';
 import { QuickAddModal } from './QuickAddModal';
 import { TaskDetailSheet } from './task-detail/TaskDetailSheet';
+import { WelcomeModal } from './WelcomeModal'; // <-- Importado aqui
 
 export const AppShell: React.FC = () => {
   const location = useLocation();
@@ -580,6 +581,7 @@ export const AppShell: React.FC = () => {
 
       <QuickAddModal />
       <TaskDetailSheet />
+      <WelcomeModal /> {/* <-- Renderizado aqui */}
     </div>
   );
 };
