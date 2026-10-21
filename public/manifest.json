@@ -1,0 +1,18 @@
+{
+  "name": "In Task — Tarefas, Equipe e Metas",
+  "short_name": "In Task",
+  "description": "Aplicativo de tarefas e produtividade com foco do dia, captura rápida, planejador semanal, Kanban, organizações com aprovação e metas de longo prazo.",
+  "start_url": "/hoje",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1c3cee",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='48' fill='%231c3cee'/%3E%3Cpath d='M60 98L84 122L134 72' stroke='white' stroke-width='18' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

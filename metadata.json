@@ -1,0 +1,6 @@
+{
+  "name": "In Task",
+  "description": "Aplicativo de tarefas e produtividade mobile-first e desktop completo com painel de foco diário, captura rápida, planejador semanal, Kanban, organizações com delegação e aprovação, e metas de longo prazo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
