@@ -30,6 +30,7 @@ export const AuthPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true); // NOVO ESTADO AQUI
 
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -67,7 +68,7 @@ export const AuthPage: React.FC = () => {
     setFieldErrors({});
     try {
       if (mode === 'login') {
-        await login({ email, password });
+        await login({ email, password, rememberMe }); // ENVIANDO O REMEMBER ME
       } else {
         await register({ name, email, password });
       }
@@ -287,6 +288,21 @@ export const AuthPage: React.FC = () => {
               </p>
             )}
           </div>
+
+          {mode === 'login' && (
+            <div className="flex items-center gap-2 pt-1 animate-item-enter">
+              <input
+                type="checkbox"
+                id="remember-me"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-[var(--border)] text-[#1c3cee] focus:ring-[#1c3cee] bg-[var(--surface-2)] cursor-pointer"
+              />
+              <label htmlFor="remember-me" className="text-[12px] font-medium text-[var(--text-muted)] cursor-pointer select-none">
+                Manter-me conectado
+              </label>
+            </div>
+          )}
 
           {fieldErrors.general && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500 font-semibold animate-pop-in">

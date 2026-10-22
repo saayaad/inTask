@@ -4,7 +4,10 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  updateProfile as updateFirebaseProfile 
+  updateProfile as updateFirebaseProfile,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
@@ -45,10 +48,15 @@ export class FirebaseAdapter extends LocalStorageAdapter implements DataProvider
     // 2. Sobrescrevemos o auth público da classe com a versão integrada do Firebase
     this.auth = {
       getCurrentUser: async () => {
+        // Aguarda a verificação da sessão local do Firebase antes de avançar
+        await auth.authStateReady(); 
+        
         const fbUser = auth.currentUser;
         if (!fbUser) return null;
+        
         const localAccounts = await this.localAuth.listLocalAccounts();
         let user = localAccounts.find(u => u.email.toLowerCase() === (fbUser.email || '').toLowerCase());
+        
         if (!user) {
           user = {
             id: fbUser.uid,
@@ -83,12 +91,18 @@ export class FirebaseAdapter extends LocalStorageAdapter implements DataProvider
       },
 
       login: async (input) => {
+        // Define a persistência de sessão dependendo da checkbox "Manter-me conectado"
+        const persistenceType = input.rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistenceType);
+
+        // 1. Valida diretamente no Firebase Authentication
         const cred = await signInWithEmailAndPassword(auth, input.email, input.password);
         const fbUser = cred.user;
         
-        let accounts = await this.localAuth.listLocalAccounts();
+        const accounts = await this.localAuth.listLocalAccounts();
         let matched = accounts.find(u => u.email.toLowerCase() === input.email.toLowerCase());
         
+        // 2. Se a conta local não existir, cria-a apenas no adaptador local sem invocar o Firebase novamente
         if (!matched) {
           matched = await this.localAuth.register({
             name: fbUser.displayName || input.email.split('@')[0],
