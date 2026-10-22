@@ -1,9 +1,16 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  updateProfile as updateFirebaseProfile 
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
-import { DataProvider } from './interfaces';
+import { DataProvider, AuthService } from './interfaces';
 import { LocalStorageAdapter } from './localStorageAdapter';
+import { DEFAULT_ACCENT_COLOR } from '../domain/color';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCi_Qcq7WXEbBAIBqkaaQFMU59QoaKyaK4",
@@ -22,13 +29,96 @@ export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
 /**
- * FirebaseAdapter (Structural Adapter for Phase 2 Cloud Migration)
- *
- * Atualmente herda de LocalStorageAdapter garantindo que `dataProvider` exista e funcione.
+ * FirebaseAdapter (Integração real com Firebase Auth e LocalStorage para dados)
  */
 export class FirebaseAdapter extends LocalStorageAdapter implements DataProvider {
   public override readonly mode = 'firebase' as any;
+
+  // Propriedade para guardar a referência ao serviço de auth local
+  private localAuth: AuthService;
+
+  constructor() {
+    super();
+    // 1. Guardamos o auth original (do LocalStorageAdapter) nesta variável interna
+    this.localAuth = this.auth;
+
+    // 2. Sobrescrevemos o auth público da classe com a versão integrada do Firebase
+    this.auth = {
+      getCurrentUser: async () => {
+        const fbUser = auth.currentUser;
+        if (!fbUser) return null;
+        const localAccounts = await this.localAuth.listLocalAccounts();
+        let user = localAccounts.find(u => u.email.toLowerCase() === (fbUser.email || '').toLowerCase());
+        if (!user) {
+          user = {
+            id: fbUser.uid,
+            name: fbUser.displayName || 'Usuário Firebase',
+            email: fbUser.email || '',
+            createdAt: new Date().toISOString(),
+            preferences: {
+              accentColor: DEFAULT_ACCENT_COLOR,
+              themeMode: 'system',
+              rolloverMode: 'ask',
+              rolloverHandledDate: null,
+              projectsViewMode: 'week',
+              sidebarCollapsed: false,
+              personalSpaceName: 'Pessoal',
+              personalSpaceIcon: '👤',
+            },
+          };
+        }
+        return user;
+      },
+
+      listLocalAccounts: async () => {
+        return this.localAuth.listLocalAccounts();
+      },
+
+      register: async (input) => {
+        const cred = await createUserWithEmailAndPassword(auth, input.email, input.password);
+        if (input.name && cred.user) {
+          await updateFirebaseProfile(cred.user, { displayName: input.name });
+        }
+        return this.localAuth.register(input);
+      },
+
+      login: async (input) => {
+        const cred = await signInWithEmailAndPassword(auth, input.email, input.password);
+        const fbUser = cred.user;
+        
+        let accounts = await this.localAuth.listLocalAccounts();
+        let matched = accounts.find(u => u.email.toLowerCase() === input.email.toLowerCase());
+        
+        if (!matched) {
+          matched = await this.localAuth.register({
+            name: fbUser.displayName || input.email.split('@')[0],
+            email: input.email,
+            password: input.password,
+          });
+        } else {
+          await this.localAuth.switchAccount(matched.id);
+        }
+        return matched;
+      },
+
+      switchAccount: async (userId: string) => {
+        return this.localAuth.switchAccount(userId);
+      },
+
+      logout: async () => {
+        await signOut(auth);
+        await this.localAuth.logout();
+      },
+
+      updateProfile: async (userId: string, updates) => {
+        const updated = await this.localAuth.updateProfile(userId, updates);
+        if (auth.currentUser && updates.name) {
+          await updateFirebaseProfile(auth.currentUser, { displayName: updates.name });
+        }
+        return updated;
+      },
+    };
+  }
 }
 
-// EXPORTAÇÃO OBRIGATÓRIA QUE ESTAVA FALTANDO E CAUSANDO O ERRO NO STORE.TS
-export const dataProvider: DataProvider = new LocalStorageAdapter();
+export const dataProvider: DataProvider = new FirebaseAdapter();
