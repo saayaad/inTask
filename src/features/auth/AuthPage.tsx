@@ -8,8 +8,9 @@ import {
   Sparkles,
   User as UserIcon,
   Users,
+  Trash2,
 } from 'lucide-react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
 import { useAppStore } from '../../app/store';
 import { Logo } from '../../components/Logo';
 import { auth, dataProvider } from '../../data/firebaseAdapter';
@@ -22,6 +23,7 @@ export const AuthPage: React.FC = () => {
   const register = useAppStore((s) => s.register);
   const switchAccount = useAppStore((s) => s.switchAccount);
   const seedSampleData = useAppStore((s) => s.seedSampleData);
+  const clearSampleData = useAppStore((s) => s.clearSampleData);
   const refreshUserData = useAppStore((s) => s.refreshUserData);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -34,6 +36,7 @@ export const AuthPage: React.FC = () => {
     email?: string;
     password?: string;
     general?: string;
+    success?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,6 +76,24 @@ export const AuthPage: React.FC = () => {
       setFieldErrors({
         general: err instanceof Error ? err.message : 'Não foi possível autenticar.',
       });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFieldErrors({ email: 'Informe seu e-mail acima para redefinir a senha.' });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setFieldErrors({});
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setFieldErrors({ success: 'E-mail de redefinição enviado! Verifique sua caixa de entrada.' });
+    } catch (err) {
+      setFieldErrors({ general: 'Falha ao enviar e-mail. Verifique se o e-mail está correto e cadastrado.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -231,12 +252,24 @@ export const AuthPage: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label
-              htmlFor="auth-password"
-              className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]"
-            >
-              Senha (mínimo de 8 caracteres)
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="auth-password"
+                className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]"
+              >
+                Senha (mínimo de 8 caracteres)
+              </label>
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={isSubmitting}
+                  className="text-[11px] font-semibold text-[#1c3cee] hover:underline cursor-pointer"
+                >
+                  Esqueci a senha
+                </button>
+              )}
+            </div>
             <div className="relative group">
               <Lock className="w-4 h-4 text-[var(--text-muted)] group-focus-within:text-[#1c3cee] transition-colors absolute left-3.5 top-3.5" />
               <input
@@ -258,6 +291,12 @@ export const AuthPage: React.FC = () => {
           {fieldErrors.general && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500 font-semibold animate-pop-in">
               {fieldErrors.general}
+            </div>
+          )}
+
+          {fieldErrors.success && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-400 font-semibold animate-pop-in">
+              {fieldErrors.success}
             </div>
           )}
 
@@ -327,17 +366,32 @@ export const AuthPage: React.FC = () => {
               <Users className="w-3.5 h-3.5" />
               Contas neste dispositivo
             </span>
-            <button
-              type="button"
-              onClick={async () => {
-                await seedSampleData();
-                navigate('/hoje', { replace: true });
-              }}
-              className="text-xs font-bold text-[#1c3cee] dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Dados de exemplo
-            </button>
+            <div className="flex items-center gap-2">
+              {localAccounts.some(acc => acc.id.includes('_demo_')) && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await clearSampleData();
+                  }}
+                  className="text-[11px] font-bold text-rose-500 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  title="Remover apenas os dados de exemplo"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Limpar amostras
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={async () => {
+                  await seedSampleData();
+                  navigate('/hoje', { replace: true });
+                }}
+                className="text-[11px] font-bold text-[#1c3cee] dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Criar amostras
+              </button>
+            </div>
           </div>
 
           {localAccounts.length > 0 ? (
@@ -382,7 +436,7 @@ export const AuthPage: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/50 border border-dashed border-[var(--border)] text-center">
               <p className="text-xs text-[var(--text-muted)] flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                Crie uma conta acima ou carregue os dados de exemplo.
+                Crie uma conta acima ou carregue amostras.
               </p>
             </div>
           )}

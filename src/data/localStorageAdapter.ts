@@ -57,7 +57,8 @@ export class LocalStorageAdapter implements DataProvider {
   public tags: TagRepository;
   public orgs: OrgRepository;
   public goals: GoalRepository;
-  public backup: BackupService;
+  // Expande a tipagem localmente para suportar a nova função
+  public backup: BackupService & { clearSampleData: () => Promise<void> };
 
   constructor(engine = new StorageEngine()) {
     this.engine = engine;
@@ -1339,7 +1340,7 @@ export class LocalStorageAdapter implements DataProvider {
     };
   }
 
-  private createBackupService(): BackupService {
+  private createBackupService(): BackupService & { clearSampleData: () => Promise<void> } {
     return {
       exportUserBackup: async (userId: string): Promise<BackupPayload> => {
         const db = this.engine.readDb();
@@ -1950,6 +1951,29 @@ export class LocalStorageAdapter implements DataProvider {
         this.engine.writeDb(db, true);
         this.engine.setSessionUserId(adminUser.id);
         return adminUser;
+      },
+
+      clearSampleData: async (): Promise<void> => {
+        const db = this.engine.readDb();
+        
+        // Remove tudo que contem "_demo_" no ID (contas de demonstração, orgs de teste, etc.)
+        db.users = db.users.filter((u) => !u.id.includes('_demo_'));
+        db.credentials = db.credentials.filter((c) => !c.userId.includes('_demo_'));
+        db.organizations = db.organizations.filter((o) => !o.id.includes('_demo_'));
+        db.memberships = db.memberships.filter((m) => !m.userId.includes('_demo_') && !m.orgId.includes('_demo_'));
+        db.invites = db.invites.filter((i) => !i.id.includes('_demo_'));
+        db.tags = db.tags.filter((t) => !t.id.includes('_demo_') && !t.spaceId.includes('_demo_'));
+        db.tasks = db.tasks.filter((t) => !t.id.includes('_demo_'));
+        db.inboxItems = db.inboxItems.filter((i) => !i.id.includes('_demo_'));
+        db.goals = db.goals.filter((g) => !g.id.includes('_demo_'));
+        
+        // Se a conta atual era uma demo e foi apagada, tira a sessão ativa
+        const currentSession = this.engine.getSessionUserId();
+        if (currentSession && currentSession.includes('_demo_')) {
+          this.engine.setSessionUserId(null);
+        }
+        
+        this.engine.writeDb(db, true);
       },
 
       clearAllData: async (): Promise<void> => {

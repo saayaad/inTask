@@ -138,6 +138,7 @@ interface AppState {
   validateBackup: (rawJson: string) => Promise<{ payload: BackupPayload; summary: BackupSummary }>;
   importBackup: (payload: BackupPayload, mode: 'replace' | 'merge') => Promise<void>;
   seedSampleData: () => Promise<void>;
+  clearSampleData: () => Promise<void>;
   clearAllData: () => Promise<void>;
   simulateNextDay: () => Promise<void>;
   resetSimulatedClock: () => Promise<void>;
@@ -940,6 +941,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast({
       message: 'Dados de exemplo carregados!',
       type: 'success',
+    });
+  },
+
+  clearSampleData: async () => {
+    const { user } = get();
+    if ((dataProvider.backup as any).clearSampleData) {
+      await (dataProvider.backup as any).clearSampleData();
+    }
+    
+    // Se o usuário atual foi apagado (era demo), voltamos para login. Se não, atualiza os dados
+    const currentUser = await dataProvider.auth.getCurrentUser();
+    if (!currentUser) {
+      set({ activeTaskId: null, selectedTodaySpace: 'all' });
+    }
+    await get().refreshUserData(currentUser);
+    
+    get().showToast({
+      message: 'Dados de exemplo removidos com sucesso!',
+      type: 'info',
     });
   },
 
