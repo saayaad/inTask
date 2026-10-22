@@ -30,7 +30,7 @@ export const AuthPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true); // NOVO ESTADO AQUI
+  const [rememberMe, setRememberMe] = useState(true);
 
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -68,7 +68,7 @@ export const AuthPage: React.FC = () => {
     setFieldErrors({});
     try {
       if (mode === 'login') {
-        await login({ email, password, rememberMe }); // ENVIANDO O REMEMBER ME
+        await login({ email, password, rememberMe });
       } else {
         await register({ name, email, password });
       }
@@ -289,16 +289,27 @@ export const AuthPage: React.FC = () => {
             )}
           </div>
 
+          {/* NOVO CHECKBOX CUSTOMIZADO */}
           {mode === 'login' && (
-            <div className="flex items-center gap-2 pt-1 animate-item-enter">
-              <input
-                type="checkbox"
-                id="remember-me"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border)] text-[#1c3cee] focus:ring-[#1c3cee] bg-[var(--surface-2)] cursor-pointer"
-              />
-              <label htmlFor="remember-me" className="text-[12px] font-medium text-[var(--text-muted)] cursor-pointer select-none">
+            <div className="flex items-center gap-2.5 pt-1 animate-item-enter">
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="peer appearance-none w-4 h-4 rounded-[4px] border border-[var(--border)] bg-[var(--surface-2)] checked:bg-[#1c3cee] checked:border-[#1c3cee] hover:border-[#1c3cee] transition-all cursor-pointer"
+                />
+                <svg
+                  className="absolute w-2.5 h-2.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                  viewBox="0 0 14 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <label htmlFor="remember-me" className="text-[12px] font-semibold text-[var(--text-muted)] cursor-pointer select-none hover:text-[var(--text)] transition-colors">
                 Manter-me conectado
               </label>
             </div>
